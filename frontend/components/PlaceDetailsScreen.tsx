@@ -66,6 +66,7 @@ export const PlaceDetailsScreen: React.FC<PlaceDetailsScreenProps> = ({
   const insets = useSafeAreaInsets();
   const [placeDetails, setPlaceDetails] = useState<PlaceDetails | null>(null);
   const [loading, setLoading] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   useEffect(() => {
     const loadPlaceDetails = async () => {
@@ -85,11 +86,69 @@ export const PlaceDetailsScreen: React.FC<PlaceDetailsScreenProps> = ({
     loadPlaceDetails();
   }, [place.placeId]);
 
+  const handleCategoryPress = (category: string) => {
+    setSelectedCategory(category);
+  };
+
+  const handleBackFromDistribution = () => {
+    setSelectedCategory(null);
+  };
+
+  // Mock rating distribution data (in real app, this would come from API)
+  const getRatingDistribution = (category: string): Record<number, number> => {
+    return {
+      1: 2,
+      2: 1,
+      3: 5,
+      4: 12,
+      5: 8
+    };
+  };
+
+  // Render rating distribution dropdown
+  const renderRatingDistribution = (category: string) => {
+    const distribution = getRatingDistribution(category);
+    const total = Object.values(distribution).reduce((sum, count) => sum + count, 0);
+    
+    return (
+      <View style={styles.dropdownContainer}>
+        <View style={styles.dropdownContent}>
+          <ThemedText style={styles.dropdownSubtitle}>{total} ratings breakdown</ThemedText>
+          
+          {[5, 4, 3, 2, 1].map((stars) => {
+            const count = distribution[stars] || 0;
+            const percentage = total > 0 ? (count / total) * 100 : 0;
+            
+            return (
+              <View key={stars} style={styles.dropdownRow}>
+                <ThemedText style={styles.dropdownStarsLabel}>{stars} star</ThemedText>
+                <View style={styles.dropdownBarContainer}>
+                  {percentage > 0 && (
+                    <View style={styles.dropdownBarWrapper}>
+                      <View 
+                        style={[styles.dropdownBar, { width: `${percentage}%` }]}
+                      />
+                      <ThemedText style={[styles.dropdownCountLabel, { left: `${percentage}%` }]}>{count}</ThemedText>
+                    </View>
+                  )}
+                  {percentage === 0 && (
+                    <ThemedText style={[styles.dropdownCountLabel, { left: 0 }]}>{count}</ThemedText>
+                  )}
+                </View>
+              </View>
+            );
+          })}
+        </View>
+      </View>
+    );
+  };
+
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <LinearGradient
         colors={['#FFFFFF', '#FFFFFF', '#8AC2B5']}
-        locations={[0, 0.6, 1]}
+        locations={[0, 0.35, 1]}
         style={styles.gradientBackground}
       />
       <View style={styles.header}>
@@ -136,16 +195,22 @@ export const PlaceDetailsScreen: React.FC<PlaceDetailsScreenProps> = ({
               .map(([feature, rating]) => {
                 const IconComponent = accessibilityIcons[feature as keyof typeof accessibilityIcons];
                 return (
-                  <View key={feature} style={styles.accessibilityCard}>
-                    <View style={styles.cardContent}>
-                      <View style={styles.cardLeft}>
-                        <ThemedText style={styles.categoryName}>{feature}</ThemedText>
-                        <ThemedText style={styles.starRating}>{renderStars(rating)}</ThemedText>
+                  <View key={feature}>
+                    <TouchableOpacity 
+                      style={styles.accessibilityCard}
+                      onPress={() => handleCategoryPress(feature)}
+                    >
+                      <View style={styles.cardContent}>
+                        <View style={styles.cardLeft}>
+                          <ThemedText style={styles.categoryName}>{feature}</ThemedText>
+                          <ThemedText style={styles.starRating}>{renderStars(rating)}</ThemedText>
+                        </View>
+                        <View style={styles.cardRight}>
+                          {IconComponent && <IconComponent width={28} height={28} fill="#000000" />}
+                        </View>
                       </View>
-                      <View style={styles.cardRight}>
-                        {IconComponent && <IconComponent width={28} height={28} fill="#000000" />}
-                      </View>
-                    </View>
+                    </TouchableOpacity>
+                    {selectedCategory === feature && renderRatingDistribution(feature)}
                   </View>
                 );
               })}
@@ -309,5 +374,113 @@ const styles = StyleSheet.create({
     color: '#666666',
     textAlign: 'center',
     fontStyle: 'italic',
+  },
+  distributionContainer: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  distributionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    marginBottom: 20,
+  },
+  distributionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#0D1514',
+    fontFamily: 'Inter',
+    marginLeft: 16,
+  },
+  distributionContent: {
+    paddingHorizontal: 16,
+  },
+  distributionSubtitle: {
+    fontSize: 16,
+    color: '#8E8E8E',
+    fontFamily: 'Inter',
+    marginBottom: 24,
+  },
+  distributionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  starsLabel: {
+    fontSize: 16,
+    color: '#0D1514',
+    fontFamily: 'Inter',
+    width: 40,
+  },
+  barContainer: {
+    flex: 1,
+    height: 8,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 4,
+    marginHorizontal: 12,
+  },
+  bar: {
+    height: 8,
+    backgroundColor: '#015F70',
+    borderRadius: 4,
+  },
+  countLabel: {
+    fontSize: 16,
+    color: '#0D1514',
+    fontFamily: 'Inter',
+    width: 30,
+    textAlign: 'right',
+  },
+  dropdownContainer: {
+    backgroundColor: 'transparent',
+    borderRadius: 8,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  dropdownContent: {
+    padding: 12,
+  },
+  dropdownSubtitle: {
+    fontSize: 14,
+    color: '#8E8E8E',
+    fontFamily: 'Inter',
+    marginBottom: 12,
+  },
+  dropdownRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  dropdownStarsLabel: {
+    fontSize: 14,
+    color: '#0D1514',
+    fontFamily: 'Inter',
+    width: 50,
+  },
+  dropdownBarContainer: {
+    flex: 1,
+    height: 18,
+    justifyContent: 'center',
+    marginHorizontal: 8,
+    position: 'relative',
+  },
+  dropdownBarWrapper: {
+    position: 'relative',
+    width: '100%',
+    height: 18,
+  },
+  dropdownBar: {
+    height: 18,
+    backgroundColor: '#015F70',
+    borderRadius: 2,
+  },
+  dropdownCountLabel: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    fontFamily: 'Inter',
+    position: 'absolute',
+    top: 2,
+    marginLeft: 4,
+    fontWeight: '600',
   },
 });

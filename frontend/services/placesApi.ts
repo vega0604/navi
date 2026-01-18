@@ -241,6 +241,89 @@ const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * c;
 };
 
+// Search for places using Google Places Text Search
+export const searchPlaces = async (
+  query: string,
+  latitude?: number,
+  longitude?: number,
+  radius: number = 5000
+): Promise<NearbyPlace[]> => {
+  try {
+    if (!GOOGLE_PLACES_API_KEY) {
+      console.error('❌ Google Places API key not found. Please check your .env file.');
+      return [];
+    }
+    
+    if (!query.trim()) {
+      return [];
+    }
+    
+    console.log('🔍 Searching places for:', query);
+    
+    let url = `${PLACES_API_BASE_URL}/textsearch/json?query=${encodeURIComponent(query)}&key=${GOOGLE_PLACES_API_KEY}`;
+    
+    // Add location bias if coordinates are provided
+    if (latitude && longitude) {
+      url += `&location=${latitude},${longitude}&radius=${radius}`;
+      console.log('📍 Using location bias:', latitude, longitude, 'radius:', radius);
+    }
+    
+    console.log('📡 Making Places Text Search API request to:', url.replace(GOOGLE_PLACES_API_KEY || '', '[API_KEY]'));
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    console.log('✅ Places Text Search API response:', data);
+    
+    if (data.status !== 'OK') {
+      console.error('❌ Places Text Search API error:', data.status, data.error_message);
+      return [];
+    }
+
+    // Convert Google Places results to our format
+    const searchResults: NearbyPlace[] = data.results.slice(0, 10).map((place: any, index: number) => {
+      // Calculate approximate distance if user location is provided
+      let distance = 0;
+      if (latitude && longitude && place.geometry?.location) {
+        distance = calculateDistance(latitude, longitude, place.geometry.location.lat, place.geometry.location.lng);
+      }
+      
+      // Determine category from place types
+      const category = getCategoryFromTypes(place.types || []);
+      
+      return {
+        id: `search_${index + 1}`,
+        name: place.name || 'Unknown Place',
+        distance: distance > 0 ? `${distance.toFixed(1)} km` : 'Unknown distance',
+        category: category,
+        placeId: place.place_id,
+        coordinate: {
+          latitude: place.geometry?.location?.lat || 0,
+          longitude: place.geometry?.location?.lng || 0
+        },
+        disabilityCategory: {
+          'Mobility Impairment': 0,
+          'Visual Impairment': 0,
+          'Light Sensitivity': 0,
+          'Sound Sensitivity': 0,
+          'Chronic Fatigue': 0,
+          'Respiratory Issues': 0,
+        }
+      };
+    });
+
+    console.log('📍 Parsed search results:', searchResults);
+    return searchResults;
+    
+  } catch (error) {
+    console.error('❌ Error searching places:', error);
+    return [];
+  }
+};
+
 // Helper function to determine category from Google Place types
 const getCategoryFromTypes = (types: string[]): string => {
   const categoryMap: { [key: string]: string } = {

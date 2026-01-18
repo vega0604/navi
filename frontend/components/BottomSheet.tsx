@@ -26,6 +26,7 @@ interface BottomSheetProps {
   scrollY: React.MutableRefObject<number>;
   panHandlers: any;
   onPlaceSelect?: (place: Location) => void;
+  isSearching?: boolean;
 }
 
 export const BottomSheet: React.FC<BottomSheetProps> = ({
@@ -38,7 +39,8 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   expandSheet,
   scrollY,
   panHandlers,
-  onPlaceSelect
+  onPlaceSelect,
+  isSearching = false
 }) => {
 
   return (

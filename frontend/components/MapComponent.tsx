@@ -17,7 +17,9 @@ interface MapComponentProps {
     name: string;
     placeId: string;
   } | null;
+  nearbyPlaces?: any[];
   onPoiClick: (event: any) => void;
+  onMarkerPress?: (place: any) => void;
   onSettingsPress: () => void;
   setErrorMsg: (msg: string | null) => void;
 }
@@ -27,7 +29,9 @@ export const MapComponent: React.FC<MapComponentProps> = ({
   location,
   errorMsg,
   clickedPoi,
+  nearbyPlaces = [],
   onPoiClick,
+  onMarkerPress,
   onSettingsPress,
   setErrorMsg
 }) => {
@@ -97,8 +101,8 @@ export const MapComponent: React.FC<MapComponentProps> = ({
         provider="google" // Force Google Maps on iOS
         style={styles.map}
         initialRegion={{
-          latitude: 37.78825,
-          longitude: -122.4324,
+          latitude: 43.5890,
+          longitude: -79.6441,
           latitudeDelta: 0.05,
           longitudeDelta: 0.05,
         }}
