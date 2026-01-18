@@ -1,98 +1,116 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
+import React from 'react';
+import { StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
 
-export default function HomeScreen() {
+// Mock data for nearby locations
+const mockLocations = [
+  {
+    id: '1',
+    name: 'Central Library',
+    distance: '0.2 miles',
+    accessibilityScore: 4.5,
+    category: 'Library',
+  },
+  {
+    id: '2',
+    name: 'City Park',
+    distance: '0.4 miles',
+    accessibilityScore: 3.8,
+    category: 'Park',
+  },
+  {
+    id: '3',
+    name: 'Metro Station',
+    distance: '0.6 miles',
+    accessibilityScore: 4.2,
+    category: 'Transportation',
+  },
+  {
+    id: '4',
+    name: 'Community Center',
+    distance: '0.8 miles',
+    accessibilityScore: 4.7,
+    category: 'Community',
+  },
+];
+
+export default function ListScreen() {
+  const renderLocationItem = ({ item }: { item: typeof mockLocations[0] }) => (
+    <TouchableOpacity style={styles.locationItem}>
+      <ThemedView style={styles.locationContent}>
+        <ThemedText type="subtitle" style={styles.locationName}>
+          {item.name}
+        </ThemedText>
+        <ThemedText style={styles.locationDetails}>
+          {item.category} • {item.distance}
+        </ThemedText>
+        <ThemedText style={styles.accessibilityScore}>
+          Accessibility Score: {item.accessibilityScore}/5
+        </ThemedText>
+      </ThemedView>
+    </TouchableOpacity>
+  );
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
+    <ThemedView style={styles.container}>
+      <ThemedView style={styles.header}>
+        <ThemedText type="title">Nearby Locations</ThemedText>
+        <ThemedText style={styles.subtitle}>
+          Voice-accessible list of locations around you
         </ThemedText>
       </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
-
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+      
+      <FlatList
+        data={mockLocations}
+        renderItem={renderLocationItem}
+        keyExtractor={(item) => item.id}
+        style={styles.list}
+        contentContainerStyle={styles.listContent}
+      />
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
   },
-  stepContainer: {
-    gap: 8,
+  header: {
+    padding: 20,
+    paddingTop: 60,
+  },
+  subtitle: {
+    marginTop: 8,
+    opacity: 0.7,
+  },
+  list: {
+    flex: 1,
+  },
+  listContent: {
+    padding: 20,
+    paddingTop: 0,
+  },
+  locationItem: {
+    marginBottom: 16,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  locationContent: {
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 12,
+  },
+  locationName: {
+    marginBottom: 4,
+  },
+  locationDetails: {
     marginBottom: 8,
+    opacity: 0.7,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  accessibilityScore: {
+    fontWeight: '600',
+    color: '#007AFF',
   },
 });
