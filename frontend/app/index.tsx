@@ -6,6 +6,7 @@ import { SettingsModal } from '@/components/SettingsModal';
 import { VoiceOverPlacesList } from '@/components/VoiceOverPlacesList';
 import { useMainScreen } from '@/hooks/useMainScreen';
 import { mockLocations } from '@/data/mockLocations';
+import { router, type Href } from 'expo-router';
 
 export default function MainScreen() {
   const {
@@ -41,10 +42,7 @@ export default function MainScreen() {
           nearbyPlaces={nearbyPlaces}
           preferredDisabilityCategories={preferredDisabilityCategories}
           onSettingsPress={() => setShowSettingsModal(true)}
-          onCameraPress={() => {
-            // TODO: Implement camera functionality
-            console.log('Camera button pressed');
-          }}
+          onCameraPress={() => router.push('/camera-back' as Href)}
           onMicPress={() => {
             // TODO: Implement voice functionality
             console.log('Mic button pressed');

@@ -15,6 +15,7 @@ from dtos.cv_dtos import (
     LatestSummaryResponse,
 )
 from services.cv_service import get_cv_service, CVService, Summary
+from loguru import logger
 
 router = APIRouter(prefix="/cv", tags=["cv"])
 
@@ -27,11 +28,13 @@ def get_service() -> CVService:
 async def start_session(req: StartSessionRequest, svc: CVService = Depends(get_service)):
     # Optionally use req.sampling_rate / req.summary_interval_s to configure session
     session_id = await svc.start_session(params=req.model_dump())
+    logger.info(f"[CV] start_session -> {session_id} params={req.model_dump()} ")
     return StartSessionResponse(session_id=session_id)
 
 
 @router.post("/session/stop", response_model=StopSessionResponse)
 async def stop_session(req: StopSessionRequest, svc: CVService = Depends(get_service)):
+    logger.info(f"[CV] stop_session <- {req.session_id}")
     await svc.stop_session(req.session_id)
     return StopSessionResponse(ok=True)
 
@@ -61,6 +64,7 @@ async def upload_frames(
         data.append(content)
 
     try:
+        logger.info(f"[CV] /frames <- session={session_id} count={len(data)} sizes={[len(b) for b in data]}")
         await svc.enqueue_frames(session_id, data, timestamps)
     except KeyError:
         raise HTTPException(status_code=404, detail="session not found")
@@ -102,6 +106,7 @@ async def summary_ws(ws: WebSocket, session_id: str):
             pass
 
     try:
+        logger.info(f"[CV] WS connect session={session_id}")
         svc.subscribe(session_id, on_summary)
     except KeyError:
         await ws.send_json({"type": "error", "detail": "session not found"})
@@ -111,7 +116,7 @@ async def summary_ws(ws: WebSocket, session_id: str):
     try:
         while True:
             s = await queue.get()
-            await ws.send_json({
+            payload = {
                 "type": "summary",
                 "session_id": session_id,
                 "ts": s.ts,
@@ -119,9 +124,11 @@ async def summary_ws(ws: WebSocket, session_id: str):
                 "text": s.text,
                 "audio_url": s.audio_url,
                 "extra": s.extra,
-            })
+            }
+            logger.info(f"[CV] WS -> session={session_id} v={s.version} text={(s.text or '')[:120]}")
+            await ws.send_json(payload)
     except WebSocketDisconnect:
-        pass
+        logger.info(f"[CV] WS disconnect session={session_id}")
     finally:
         svc.unsubscribe(session_id, on_summary)
         with contextlib.suppress(Exception):
