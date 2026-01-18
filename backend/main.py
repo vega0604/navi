@@ -10,10 +10,12 @@ from models.poi import POI
 from routers.places_router import router as places_router
 from routers.ratings_router import router as ratings_router 
 from routers.reviews_router import router as reviews_router
+from routers.cv_router import router as cv_router
 
 from services.places_service import init_places_service
 from services.ratings_service import init_ratings_service
 from services.reviews_service import init_reviews_service
+from services.cv_service import init_cv_service
 
 from os import getenv
 from pyngrok import ngrok, conf
@@ -66,6 +68,7 @@ app = FastAPI(lifespan=lifespan)
 app.include_router(places_router)
 app.include_router(ratings_router)
 app.include_router(reviews_router)
+app.include_router(cv_router)
 
 @app.get("/")
 async def root():
