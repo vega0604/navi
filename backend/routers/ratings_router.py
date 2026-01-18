@@ -1,12 +1,7 @@
 from fastapi import APIRouter
+from services.ratings_service import get_ratings_service
 
 router = APIRouter(prefix="/ratings", tags=["ratings"])
-
-
-@router.get("/")
-async def get_ratings():
-    """Get all ratings"""
-    return {"message": "Get ratings"}
 
 
 @router.get("/{rating_id}")

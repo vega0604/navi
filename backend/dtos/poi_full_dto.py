@@ -1,6 +1,6 @@
 from pydantic import BaseModel
-from category_enum import DisabilityCategory
-from poi import POI
+from models.category_enum import DisabilityCategory
+from models.poi import POI
 from typing import List
 
 
