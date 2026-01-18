@@ -3,7 +3,7 @@ name = "backend"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 dependencies = [
     "beanie>=2.0.1",
     "dotenv>=0.9.9",
@@ -15,4 +15,16 @@ dependencies = [
     "pymongo[srv]>=4.16.0",
     "pyngrok>=7.5.0",
     "uvicorn>=0.40.0",
+    "ultralytics>=8.3.0",
+    "opencv-python-headless>=4.10.0.84",
+    "google-genai>=0.3.0",
+    "python-dotenv>=1.0.1",
+    "numpy>=1.26.0",
 ]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["models", "routers", "services", "dtos"]

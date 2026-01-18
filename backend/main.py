@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from motor.motor_asyncio import AsyncIOMotorClient
 from beanie import init_beanie
 from contextlib import asynccontextmanager
+from dotenv import load_dotenv; load_dotenv()
 
 from models.review import Review
 from models.poi_ratings import POIRating
@@ -10,10 +11,12 @@ from models.poi import POI
 from routers.places_router import router as places_router
 from routers.ratings_router import router as ratings_router 
 from routers.reviews_router import router as reviews_router
+from routers.cv_router import router as cv_router
 
 from services.places_service import init_places_service
 from services.ratings_service import init_ratings_service
 from services.reviews_service import init_reviews_service
+from services.cv_service import init_cv_service
 
 from dotenv import load_dotenv
 from os import getenv
@@ -40,6 +43,7 @@ async def lifespan(app: FastAPI):
     init_places_service()
     init_ratings_service()
     init_reviews_service()
+    init_cv_service()
 
     logger.info("Starting ngrok tunnel...")
     public_url = ngrok.connect(name='api-server').public_url
@@ -62,6 +66,7 @@ app = FastAPI(lifespan=lifespan)
 app.include_router(places_router)
 app.include_router(ratings_router)
 app.include_router(reviews_router)
+app.include_router(cv_router)
 
 @app.get("/")
 async def root():
