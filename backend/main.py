@@ -15,16 +15,17 @@ from services.places_service import init_places_service
 from services.ratings_service import init_ratings_service
 from services.reviews_service import init_reviews_service
 
+from dotenv import load_dotenv
 from os import getenv
-from pyngrok import ngrok, conf
+from pyngrok import ngrok
 from loguru import logger
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting application lifespan...")
     logger.info("Connecting to MongoDB Cluster...")
+    load_dotenv()
     mongo_uri = getenv("MONGODB_URI")  
-    logger.info(f"MongoDB URI: {mongo_uri}")  # Log the URI for debugging
     mongo_client = AsyncIOMotorClient(mongo_uri)
     await init_beanie(
         database=mongo_client['navi-cluster'], # type: ignore
@@ -41,22 +42,17 @@ async def lifespan(app: FastAPI):
     init_reviews_service()
 
     logger.info("Starting ngrok tunnel...")
-    NGROK_AUTH_TOKEN = getenv("NGROK_AUTH_TOKEN")
-    public_url = None
-    if NGROK_AUTH_TOKEN:
-        conf.get_default().auth_token = NGROK_AUTH_TOKEN
-        public_url = ngrok.connect("8000").public_url
-        logger.info(f"ngrok tunnel started at {public_url}")
-    else:
-        logger.warning("NGROK_AUTH_TOKEN not found in environment variables. Skipping ngrok tunnel setup.")
+    public_url = ngrok.connect(name='api-server').public_url
+    logger.info(f"ngrok tunnel started at {public_url}")
 
     yield
 
     logger.info("Shutting down application lifespan...")
     logger.info("Closing MongoDB connection...")
     mongo_client.close()
+
+    logger.info("Disconnecting ngrok tunnel...")
     if public_url:
-        logger.info("Disconnecting ngrok tunnel...")
         ngrok.disconnect(public_url)
 
 
