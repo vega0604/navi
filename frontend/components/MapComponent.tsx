@@ -9,7 +9,7 @@ import SettingsIcon from '@/assets/icons/settings_black.svg';
 import EmergencyIcon from '@/assets/icons/emergency.svg';
 
 interface MapComponentProps {
-  mapRef: React.RefObject<MapView>;
+  mapRef: React.RefObject<MapView | null>;
   location: Location.LocationObject | null;
   errorMsg: string | null;
   clickedPoi: {

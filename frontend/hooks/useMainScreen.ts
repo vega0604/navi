@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Animated, PanResponder, Dimensions } from 'react-native';
+import { Animated, PanResponder, Dimensions, AccessibilityInfo } from 'react-native';
 import MapView from 'react-native-maps';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -24,6 +24,7 @@ export const useMainScreen = () => {
   const [placeDetails, setPlaceDetails] = useState<PlaceDetails | null>(null);
   const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlace[]>([]);
   const [isSheetExpanded, setIsSheetExpanded] = useState(false);
+  const [isVoiceOverEnabled, setIsVoiceOverEnabled] = useState(true);
 
   // Storage keys for AsyncStorage
   const STORAGE_KEY = '@navi_preferred_disability_categories';
@@ -169,6 +170,35 @@ export const useMainScreen = () => {
     loadPreferences();
   }, []);
 
+  // Detect VoiceOver state
+  useEffect(() => {
+    const checkVoiceOver = async () => {
+      try {
+        const isEnabled = await AccessibilityInfo.isScreenReaderEnabled();
+        setIsVoiceOverEnabled(isEnabled);
+        console.log('🔊 VoiceOver enabled:', isEnabled);
+      } catch (error) {
+        console.error('Error checking VoiceOver status:', error);
+      }
+    };
+
+    // Check initial state
+    checkVoiceOver();
+
+    // Listen for changes
+    const subscription = AccessibilityInfo.addEventListener(
+      'screenReaderChanged',
+      (isEnabled) => {
+        setIsVoiceOverEnabled(isEnabled);
+        console.log('🔊 VoiceOver changed:', isEnabled);
+      }
+    );
+
+    return () => {
+      subscription?.remove();
+    };
+  }, []);
+
   // Fetch nearby places when location is available
   useEffect(() => {
     const fetchNearby = async () => {
@@ -252,6 +282,7 @@ export const useMainScreen = () => {
     showSettingsModal,
     isFirstTime,
     isSheetExpanded,
+    isVoiceOverEnabled,
     
     // Refs
     mapRef,
