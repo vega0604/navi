@@ -91,8 +91,8 @@ const styles = StyleSheet.create({
   },
   locationName: {
     marginLeft: 8,
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '500',
     color: '#0D1514',
   },
   locationDistance: {
