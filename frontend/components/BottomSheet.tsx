@@ -19,6 +19,9 @@ interface BottomSheetProps {
   setSearchText: (text: string) => void;
   mockLocations: Location[];
   preferredDisabilityCategories: string[];
+  isSheetExpanded: boolean;
+  expandSheet: () => void;
+  scrollY: React.MutableRefObject<number>;
   panHandlers: any;
 }
 
@@ -28,6 +31,9 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   setSearchText,
   mockLocations,
   preferredDisabilityCategories,
+  isSheetExpanded,
+  expandSheet,
+  scrollY,
   panHandlers
 }) => {
   return (
@@ -50,6 +56,12 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
             placeholderTextColor="rgba(0, 0, 0, 0.65)"
             value={searchText}
             onChangeText={setSearchText}
+            editable={isSheetExpanded}
+            onPressIn={() => {
+              if (!isSheetExpanded) {
+                expandSheet();
+              }
+            }}
           />
           <TouchableOpacity style={styles.micButton}>
             <MicIcon />
@@ -67,6 +79,12 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
           style={styles.locationsList}
           showsVerticalScrollIndicator={false}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
+          bounces={false}
+          alwaysBounceVertical={false}
+          onScroll={(e) => {
+            scrollY.current = Math.max(0, e.nativeEvent.contentOffset.y);
+          }}
+          scrollEventThrottle={16}
         />
       </View>
     </Animated.View>

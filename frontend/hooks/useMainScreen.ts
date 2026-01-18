@@ -3,6 +3,7 @@ import { Animated, PanResponder, Dimensions } from 'react-native';
 import MapView from 'react-native-maps';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { fetchPlaceDetails, PlaceDetails, fetchNearbyPlaces, NearbyPlace } from '@/services/placesApi';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const BOTTOM_SHEET_MAX_HEIGHT = SCREEN_HEIGHT * 0.7;
@@ -20,6 +21,9 @@ export const useMainScreen = () => {
   const [preferredDisabilityCategories, setPreferredDisabilityCategories] = useState<string[]>([]);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [isFirstTime, setIsFirstTime] = useState(false);
+  const [placeDetails, setPlaceDetails] = useState<PlaceDetails | null>(null);
+  const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlace[]>([]);
+  const [isSheetExpanded, setIsSheetExpanded] = useState(false);
 
   // Storage keys for AsyncStorage
   const STORAGE_KEY = '@navi_preferred_disability_categories';
@@ -29,6 +33,8 @@ export const useMainScreen = () => {
   const mapRef = useRef<MapView>(null);
   const bottomSheetHeight = useRef(new Animated.Value(BOTTOM_SHEET_MIN_HEIGHT)).current;
   const poiClickLock = useRef(false);
+  const scrollY = useRef(0);
+  const isAnimating = useRef(false);
 
   // Load preferred disability categories from storage
   const loadPreferences = async () => {
@@ -92,7 +98,17 @@ export const useMainScreen = () => {
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (evt, gestureState) => {
-        return Math.abs(gestureState.dy) > 20;
+        // Don't allow dragging while opening animation runs
+        if (isAnimating.current) return false;
+        
+        // If content can scroll, don't move sheet
+        if (scrollY.current > 0) return false;
+
+        // Allow upward gestures (expand sheet) or strong downward gestures (collapse)
+        const isUpwardGesture = gestureState.dy < -10;
+        const isStrongDownwardGesture = gestureState.dy > 15;
+        
+        return isUpwardGesture || isStrongDownwardGesture;
       },
       onPanResponderMove: (evt, gestureState) => {
         const newHeight = BOTTOM_SHEET_MIN_HEIGHT - gestureState.dy;
@@ -106,16 +122,24 @@ export const useMainScreen = () => {
         
         if (velocity < -0.5 || currentHeight > BOTTOM_SHEET_MAX_HEIGHT * 0.5) {
           // Expand
+          isAnimating.current = true;
+          setIsSheetExpanded(true);
           Animated.spring(bottomSheetHeight, {
             toValue: BOTTOM_SHEET_MAX_HEIGHT,
             useNativeDriver: false,
-          }).start();
+          }).start(() => {
+            isAnimating.current = false;
+          });
         } else {
           // Collapse
+          isAnimating.current = true;
+          setIsSheetExpanded(false);
           Animated.spring(bottomSheetHeight, {
             toValue: BOTTOM_SHEET_MIN_HEIGHT,
             useNativeDriver: false,
-          }).start();
+          }).start(() => {
+            isAnimating.current = false;
+          });
         }
       },
     })
@@ -145,8 +169,26 @@ export const useMainScreen = () => {
     loadPreferences();
   }, []);
 
+  // Fetch nearby places when location is available
+  useEffect(() => {
+    const fetchNearby = async () => {
+      if (location) {
+        console.log('📍 Location available, fetching nearby places...');
+        const places = await fetchNearbyPlaces(
+          location.coords.latitude,
+          location.coords.longitude,
+          2000 // 2km radius
+        );
+        setNearbyPlaces(places);
+        console.log(`✅ Found ${places.length} nearby places`);
+      }
+    };
 
-  const handlePoiClick = (event: any) => {
+    fetchNearby();
+  }, [location]);
+
+
+  const handlePoiClick = async (event: any) => {
     if (poiClickLock.current) return;
     poiClickLock.current = true;
 
@@ -166,9 +208,36 @@ export const useMainScreen = () => {
       });
     });
 
+    // Fetch detailed place information
+    if (placeId) {
+      console.log('🔍 Fetching details for place:', name);
+      const details = await fetchPlaceDetails(placeId);
+      if (details) {
+        setPlaceDetails(details);
+        console.log('✅ Place details fetched:', details.name);
+      } else {
+        console.log('❌ Failed to fetch place details');
+        setPlaceDetails(null);
+      }
+    }
+
     setTimeout(() => {
       poiClickLock.current = false;
     }, 500);
+  };
+
+  // Function to expand the sheet programmatically
+  const expandSheet = () => {
+    if (!isSheetExpanded && !isAnimating.current) {
+      isAnimating.current = true;
+      setIsSheetExpanded(true);
+      Animated.spring(bottomSheetHeight, {
+        toValue: BOTTOM_SHEET_MAX_HEIGHT,
+        useNativeDriver: false,
+      }).start(() => {
+        isAnimating.current = false;
+      });
+    }
   };
 
   return {
@@ -176,14 +245,18 @@ export const useMainScreen = () => {
     location,
     errorMsg,
     clickedPoi,
+    placeDetails,
+    nearbyPlaces,
     searchText,
     preferredDisabilityCategories,
     showSettingsModal,
     isFirstTime,
+    isSheetExpanded,
     
     // Refs
     mapRef,
     bottomSheetHeight,
+    scrollY,
     
     // Functions
     setSearchText,
@@ -191,9 +264,11 @@ export const useMainScreen = () => {
     toggleDisabilityPreference,
     closeSettingsModal,
     handlePoiClick,
+    expandSheet,
     setShowSettingsModal,
     
     // Pan handlers
     panHandlers: panResponder.panHandlers,
   };
 };
+ 

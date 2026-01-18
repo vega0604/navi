@@ -11,17 +11,22 @@ export default function MainScreen() {
     location,
     errorMsg,
     clickedPoi,
+    placeDetails,
+    nearbyPlaces,
     searchText,
     preferredDisabilityCategories,
     showSettingsModal,
     isFirstTime,
+    isSheetExpanded,
     mapRef,
     bottomSheetHeight,
+    scrollY,
     setSearchText,
     setErrorMsg,
     toggleDisabilityPreference,
     closeSettingsModal,
     handlePoiClick,
+    expandSheet,
     setShowSettingsModal,
     panHandlers,
   } = useMainScreen();
@@ -42,8 +47,11 @@ export default function MainScreen() {
         bottomSheetHeight={bottomSheetHeight}
         searchText={searchText}
         setSearchText={setSearchText}
-        mockLocations={mockLocations}
+        mockLocations={nearbyPlaces}
         preferredDisabilityCategories={preferredDisabilityCategories}
+        isSheetExpanded={isSheetExpanded}
+        expandSheet={expandSheet}
+        scrollY={scrollY}
         panHandlers={panHandlers}
       />
       
