@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, FlatList, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
 import { LocationItem } from './LocationItem';
+import { PlaceDetailsScreen } from './PlaceDetailsScreen';
 import { ThemedText } from '@/components/themed-text';
 import SettingsIcon from '@/assets/icons/settings_white.svg';
 import CameraIcon from '@/assets/icons/camera_white.svg';
@@ -31,6 +32,26 @@ export const VoiceOverPlacesList: React.FC<VoiceOverPlacesListProps> = ({
   onCameraPress,
   onMicPress
 }) => {
+  const [selectedPlace, setSelectedPlace] = useState<Location | null>(null);
+
+  const handlePlaceSelect = (place: Location) => {
+    setSelectedPlace(place);
+  };
+
+  const handleBackToList = () => {
+    setSelectedPlace(null);
+  };
+
+  if (selectedPlace) {
+    return (
+      <PlaceDetailsScreen 
+        place={selectedPlace}
+        preferredDisabilityCategories={preferredDisabilityCategories}
+        onBack={handleBackToList}
+      />
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -83,6 +104,7 @@ export const VoiceOverPlacesList: React.FC<VoiceOverPlacesListProps> = ({
             <LocationItem 
               item={item} 
               preferredDisabilityCategories={preferredDisabilityCategories}
+              onPress={() => handlePlaceSelect(item)}
             />
           </View>
         )}
@@ -147,6 +169,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#0D1514',
     letterSpacing: -0.5,
+    fontFamily: 'Inter',
   },
   list: {
     flex: 1,

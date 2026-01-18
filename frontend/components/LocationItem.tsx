@@ -31,9 +31,10 @@ interface LocationItemProps {
     };
   };
   preferredDisabilityCategories: string[];
+  onPress?: () => void;
 }
 
-export const LocationItem: React.FC<LocationItemProps> = ({ item, preferredDisabilityCategories }) => {
+export const LocationItem: React.FC<LocationItemProps> = ({ item, preferredDisabilityCategories, onPress }) => {
   // Filter accessibility features based on user preferences and rating 4.0 or higher
   const accessibleFeatures = Object.entries(item.disabilityCategory)
     .filter(([feature, rating]) => {
@@ -50,6 +51,7 @@ export const LocationItem: React.FC<LocationItemProps> = ({ item, preferredDisab
       style={styles.locationItem}
       accessible={false}
       importantForAccessibility="no-hide-descendants"
+      onPress={onPress}
     >
       <ThemedView style={styles.locationContent}>
         <View style={styles.locationHeader}>
@@ -92,8 +94,9 @@ const styles = StyleSheet.create({
   locationName: {
     marginLeft: 8,
     fontSize: 20,
-    fontWeight: '500',
+    fontWeight: 'normal',
     color: '#0D1514',
+    fontFamily: 'Inter',
   },
   locationDistance: {
     fontSize: 14,
