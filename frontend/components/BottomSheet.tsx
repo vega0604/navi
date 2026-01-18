@@ -1,6 +1,8 @@
-import React from 'react';
-import { View, TextInput, TouchableOpacity, FlatList, Animated, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, TextInput, TouchableOpacity, FlatList, Animated, StyleSheet, ScrollView } from 'react-native';
 import { LocationItem } from './LocationItem';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
 import MicIcon from '@/assets/icons/mic.svg';
 
 interface Location {
@@ -23,6 +25,7 @@ interface BottomSheetProps {
   expandSheet: () => void;
   scrollY: React.MutableRefObject<number>;
   panHandlers: any;
+  onPlaceSelect?: (place: Location) => void;
 }
 
 export const BottomSheet: React.FC<BottomSheetProps> = ({
@@ -34,8 +37,10 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   isSheetExpanded,
   expandSheet,
   scrollY,
-  panHandlers
+  panHandlers,
+  onPlaceSelect
 }) => {
+
   return (
     <Animated.View 
       style={[
@@ -73,6 +78,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
             <LocationItem 
               item={item} 
               preferredDisabilityCategories={preferredDisabilityCategories}
+              onPress={() => onPlaceSelect?.(item)}
             />
           )}
           keyExtractor={(item) => item.id}

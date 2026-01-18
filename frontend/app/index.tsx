@@ -1,12 +1,23 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { MapComponent } from '@/components/MapComponent';
 import { BottomSheet } from '@/components/BottomSheet';
 import { SettingsModal } from '@/components/SettingsModal';
 import { VoiceOverPlacesList } from '@/components/VoiceOverPlacesList';
+import { PlaceDetailsScreen } from '@/components/PlaceDetailsScreen';
 import { useMainScreen } from '@/hooks/useMainScreen';
 import { mockLocations } from '@/data/mockLocations';
 import { router, type Href } from 'expo-router';
+
+interface Location {
+  id: string;
+  name: string;
+  distance: string;
+  category: string;
+  disabilityCategory: {
+    [key: string]: number;
+  };
+}
 
 export default function MainScreen() {
   const {
@@ -33,6 +44,27 @@ export default function MainScreen() {
     setShowSettingsModal,
     panHandlers,
   } = useMainScreen();
+
+  const [selectedPlace, setSelectedPlace] = useState<Location | null>(null);
+
+  const handlePlaceSelect = (place: Location) => {
+    setSelectedPlace(place);
+  };
+
+  const handleBackFromDetails = () => {
+    setSelectedPlace(null);
+  };
+
+  // Show full-screen place details if a place is selected
+  if (selectedPlace) {
+    return (
+      <PlaceDetailsScreen 
+        place={selectedPlace}
+        preferredDisabilityCategories={preferredDisabilityCategories}
+        onBack={handleBackFromDetails}
+      />
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -71,6 +103,7 @@ export default function MainScreen() {
             expandSheet={expandSheet}
             scrollY={scrollY}
             panHandlers={panHandlers}
+            onPlaceSelect={handlePlaceSelect}
           />
         </>
       )}

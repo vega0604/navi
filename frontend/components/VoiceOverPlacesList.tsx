@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, FlatList, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
 import { LocationItem } from './LocationItem';
+import { PlaceDetailsScreen } from './PlaceDetailsScreen';
 import { ThemedText } from '@/components/themed-text';
-import SettingsIcon from '@/assets/icons/settings_black.svg';
+import SettingsIcon from '@/assets/icons/settings_white.svg';
 import CameraIcon from '@/assets/icons/camera_white.svg';
 import MicIcon from '@/assets/icons/mic.svg';
 
@@ -31,6 +32,26 @@ export const VoiceOverPlacesList: React.FC<VoiceOverPlacesListProps> = ({
   onCameraPress,
   onMicPress
 }) => {
+  const [selectedPlace, setSelectedPlace] = useState<Location | null>(null);
+
+  const handlePlaceSelect = (place: Location) => {
+    setSelectedPlace(place);
+  };
+
+  const handleBackToList = () => {
+    setSelectedPlace(null);
+  };
+
+  if (selectedPlace) {
+    return (
+      <PlaceDetailsScreen 
+        place={selectedPlace}
+        preferredDisabilityCategories={preferredDisabilityCategories}
+        onBack={handleBackToList}
+      />
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -41,12 +62,6 @@ export const VoiceOverPlacesList: React.FC<VoiceOverPlacesListProps> = ({
           >
             Nearby Places
           </ThemedText>
-          <ThemedText 
-            style={styles.subtitle}
-            accessibilityHint="List of places near your current location, ordered by distance"
-          >
-            {nearbyPlaces.length} places found near you
-          </ThemedText>
         </View>
         
         <View style={styles.actionButtonsRow}>
@@ -56,18 +71,16 @@ export const VoiceOverPlacesList: React.FC<VoiceOverPlacesListProps> = ({
             accessibilityLabel="Camera"
             accessibilityHint="Take a photo to identify objects or text"
           >
-            <CameraIcon width={20} height={20} fill="#FFFFFF" />
-            <ThemedText style={styles.buttonText}>Camera</ThemedText>
+            <CameraIcon width={24} height={24} fill="#FFFFFF" />
           </TouchableOpacity>
           
           <TouchableOpacity 
-            style={styles.actionButton}
+            style={styles.micButton}
             onPress={onMicPress}
             accessibilityLabel="Voice input"
             accessibilityHint="Use voice commands or dictation"
           >
-            <MicIcon width={20} height={20} fill="#FFFFFF" />
-            <ThemedText style={styles.buttonText}>Voice</ThemedText>
+            <MicIcon width={60} height={60} fill="#1A2126" />
           </TouchableOpacity>
           
           <TouchableOpacity 
@@ -76,8 +89,7 @@ export const VoiceOverPlacesList: React.FC<VoiceOverPlacesListProps> = ({
             accessibilityLabel="Settings"
             accessibilityHint="Configure accessibility preferences"
           >
-            <SettingsIcon width={20} height={20} fill="#FFFFFF" />
-            <ThemedText style={styles.buttonText}>Settings</ThemedText>
+            <SettingsIcon width={28} height={28} fill="#FFFFFF" />
           </TouchableOpacity>
         </View>
       </View>
@@ -92,6 +104,7 @@ export const VoiceOverPlacesList: React.FC<VoiceOverPlacesListProps> = ({
             <LocationItem 
               item={item} 
               preferredDisabilityCategories={preferredDisabilityCategories}
+              onPress={() => handlePlaceSelect(item)}
             />
           </View>
         )}
@@ -110,17 +123,24 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    paddingTop: 20,
   },
   header: {
     paddingHorizontal: 20,
-    paddingTop: 20,
+    marginTop: 20,
     paddingBottom: 20,
     backgroundColor: '#FFFFFF',
   },
   titleContainer: {
     paddingHorizontal: 4,
-    marginBottom: 20,
+    marginBottom: 25,
+  },
+  micButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'transparent',
   },
   actionButtonsRow: {
     flexDirection: 'row',
@@ -129,13 +149,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   actionButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    backgroundColor: '#1A2126',
+    borderRadius: 30,
+    width: 60,
+    height: 60,
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 80,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -145,22 +164,12 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
   },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
-    marginTop: 4,
-  },
   title: {
-    fontSize: 28,
+    fontSize: 25,
     fontWeight: 'bold',
     color: '#0D1514',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666666',
-    lineHeight: 22,
+    letterSpacing: -0.5,
+    fontFamily: 'Inter',
   },
   list: {
     flex: 1,
