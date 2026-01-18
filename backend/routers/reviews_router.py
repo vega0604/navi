@@ -1,21 +1,16 @@
 from fastapi import APIRouter
+from dtos.review_dto import ReviewDTO
+from models.review import Review
+from services.reviews_service import get_reviews_service
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])
 
 
-@router.get("/")
-async def get_reviews():
-    """Get all reviews"""
-    return {"message": "Get reviews"}
-
-
-@router.get("/{review_id}")
-async def get_review(review_id: int):
-    """Get a specific review"""
-    return {"review_id": review_id, "message": "Get review"}
-
-
 @router.post("/")
-async def create_review():
+async def create_review(review_data: ReviewDTO):
     """Create a new review"""
-    return {"message": "Create review"}
+
+    review = Review(**review_data.model_dump())
+    reviews_service = get_reviews_service()
+    review = await reviews_service.create_review(review)
+    return {'error': False}
