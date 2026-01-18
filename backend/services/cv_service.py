@@ -15,6 +15,7 @@ import cv2
 from dotenv import load_dotenv
 from ultralytics import YOLO
 from google import genai
+from loguru import logger
 
 
 @dataclass
@@ -38,8 +39,8 @@ class SessionState:
     # Per-session scene state
     scene_objects: Dict[str, Dict[str, Any]] = field(default_factory=dict)
     event_buffer: List[Any] = field(default_factory=list)
-    last_summary_time: float = 0.0
-    last_window_time: float = field(default_factory=lambda: time.time())
+    # Fingerprint of last emitted events to avoid duplicate summaries
+    last_events_fingerprint: Optional[str] = None
     frame_idx: int = 0
 
 
@@ -57,10 +58,9 @@ class CVService:
         self.classes: List[int] = [0, 15, 16, 1, 2, 3, 5, 6, 7, 8, 9, 11, 12, 13, 56, 57, 59, 60, 61, 71, 72, 62, 74]
         self.DISTANCE_STABILITY_FRAMES = 8
         self.POSITION_STABILITY_FRAMES = 6
-        self.PROCESS_EVERY_N_FRAMES = 8
-        # SUMMARY_WINDOW_SECONDS governs when to consider summaries (we also keep older timer-based fallback)
-        self.SUMMARY_WINDOW_SECONDS = 3
-        self.SUMMARY_COOLDOWN_SECONDS = 6
+        # Process every received frame; frontend already samples as needed
+        self.PROCESS_EVERY_N_FRAMES = 1
+        # No summarization window/cooldown; summarize immediately on new events
 
         self._sessions: Dict[str, SessionState] = {}
         self._lock = asyncio.Lock()
@@ -127,16 +127,7 @@ class CVService:
         await st.queue.put(payload)
 
     async def enqueue_clip(self, session_id: str, clip_bytes: bytes, fps: Optional[float] = None) -> None:
-        st = self._sessions.get(session_id)
-        if not st:
-            raise KeyError("session not found")
-        st.last_activity_ts = time.time()
-        payload = {
-            "type": "clip",
-            "clip": clip_bytes,
-            "fps": fps,
-        }
-        await st.queue.put(payload)
+        raise NotImplementedError("Video clip ingestion is disabled; send discrete JPEG frames via /cv/frames")
 
     def get_latest_summary(self, session_id: str) -> Optional[Summary]:
         st = self._sessions.get(session_id)
@@ -158,92 +149,68 @@ class CVService:
 
     async def _session_worker(self, st: SessionState) -> None:
         try:
-            last_summary_ts = 0.0
             version = 0
             while True:
                 item = await st.queue.get()
                 if item["type"] == "frames":
                     frames: List[bytes] = item["frames"]
                     await self._process_frames_payload(st, frames)
-                elif item["type"] == "clip":
-                    clip = item["clip"]
-                    fps = item.get("fps")
-                    await self._process_clip_payload(st, clip, fps)
 
-                # Periodic summarization trigger (simple timer-based)
-                now = time.time()
-                # Window-based summarization like the user's script
-                if now - st.last_window_time >= self.SUMMARY_WINDOW_SECONDS:
-                    if st.event_buffer and (now - st.last_summary_time) >= self.SUMMARY_COOLDOWN_SECONDS:
+                # Immediate summarization on new events
+                if st.event_buffer:
+                    import json
+                    try:
+                        fingerprint = json.dumps(st.event_buffer, sort_keys=True)
+                    except Exception:
+                        fingerprint = repr(st.event_buffer)
+
+                    if fingerprint != st.last_events_fingerprint:
                         text = await self._summarize_scene(st.event_buffer)
                         if text:
                             version += 1
+                            now = time.time()
                             summary = Summary(ts=now, version=version, text=text)
                             st.latest_summary = summary
                             for cb in list(st.subscribers):
                                 with contextlib.suppress(Exception):
                                     cb(summary)
-                            st.event_buffer.clear()
-                            st.last_summary_time = now
-                    st.last_window_time = now
+                            st.last_events_fingerprint = fingerprint
+                            logger.info(
+                                f"Session {st.session_id}: summary v{version} emitted"
+                            )
+                    # Clear buffer to await future changes
+                    st.event_buffer.clear()
         except asyncio.CancelledError:
             return
 
     async def _process_frames_payload(self, st: SessionState, frames: List[bytes]) -> None:
         for fb in frames:
             st.frame_idx += 1
-            # Decode image bytes
             arr = np.frombuffer(fb, dtype=np.uint8)
             frame = cv2.imdecode(arr, cv2.IMREAD_COLOR)
             if frame is None:
                 continue
-            # Sampling
             if st.frame_idx % self.PROCESS_EVERY_N_FRAMES != 0:
                 continue
-            # Inference (tracking)
             async with self._infer_sem:
                 results = await asyncio.to_thread(
                     self.model.track,
                     frame,
                     classes=self.classes,
-                    conf=0.8,
-                    imgsz=320,
+                    conf=0.5,
+                    imgsz=640,
+                    persist=True,
                     verbose=False,
                 )
             detections = self._extract_detections(results, frame.shape)
             events = self._update_scene(st, detections)
             if events:
                 st.event_buffer.extend(events)
+            logger.info(
+                f"Session {st.session_id}: detections={len(detections)} events={len(events)}"
+            )
 
-    async def _process_clip_payload(self, st: SessionState, clip_bytes: bytes, fps: Optional[float]) -> None:
-        # Save to temp file for OpenCV VideoCapture
-        with tempfile.NamedTemporaryFile(suffix=".mp4", delete=True) as tmp:
-            tmp.write(clip_bytes)
-            tmp.flush()
-            cap = cv2.VideoCapture(tmp.name)
-            try:
-                while True:
-                    ok, frame = cap.read()
-                    if not ok:
-                        break
-                    st.frame_idx += 1
-                    if st.frame_idx % self.PROCESS_EVERY_N_FRAMES != 0:
-                        continue
-                    async with self._infer_sem:
-                        results = await asyncio.to_thread(
-                            self.model.track,
-                            frame,
-                            classes=self.classes,
-                            conf=0.8,
-                            imgsz=320,
-                            verbose=False,
-                        )
-                    detections = self._extract_detections(results, frame.shape)
-                    events = self._update_scene(st, detections)
-                    if events:
-                        st.event_buffer.extend(events)
-            finally:
-                cap.release()
+    # Clip processing removed; only discrete frames are supported
 
     async def _summarize_scene(self, events: List[Any]) -> str:
         if not events:

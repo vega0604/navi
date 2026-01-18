@@ -68,22 +68,6 @@ async def upload_frames(
     return {"ok": True}
 
 
-@router.post("/clip")
-async def upload_clip(
-    session_id: str = Form(...),
-    clip: UploadFile = File(...),
-    fps: Optional[float] = Form(None),
-    svc: CVService = Depends(get_service),
-):
-    content = await clip.read()
-    try:
-        await svc.enqueue_clip(session_id, content, fps)
-    except KeyError:
-        raise HTTPException(status_code=404, detail="session not found")
-
-    return {"ok": True}
-
-
 @router.get("/summary/latest", response_model=LatestSummaryResponse)
 async def latest_summary(session_id: str, svc: CVService = Depends(get_service)):
     summ = svc.get_latest_summary(session_id)
