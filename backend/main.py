@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from motor.motor_asyncio import AsyncIOMotorClient
 from beanie import init_beanie
 from contextlib import asynccontextmanager
+from dotenv import load_dotenv; load_dotenv()
 
 from models.review import Review
 from models.poi_ratings import POIRating
@@ -41,6 +42,7 @@ async def lifespan(app: FastAPI):
     init_places_service()
     init_ratings_service()
     init_reviews_service()
+    init_cv_service()
 
     logger.info("Starting ngrok tunnel...")
     NGROK_AUTH_TOKEN = getenv("NGROK_AUTH_TOKEN")
